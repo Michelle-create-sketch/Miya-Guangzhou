@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>咪呀广州 🐾 智能路线规划系统</title>
+    <script type="text/javascript">
+        window._AMapSecurityConfig = {
+            securityJsCode: 'ddb7e7ccd7b518468a53fdab1432f4e1', 
+        }
+    </script>
+    <script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=eba0d43a4a695f875393985a52d0d8bc&plugin=AMap.Walking,AMap.Riding,AMap.Driving,AMap.Weather"></script>
+    
+    <style>
+        :root {
+            --primary: #ff7e9d; /* 浪漫蜜桃粉 */
+            --primary-hover: #ff5c81;
+            --primary-light: #fff0f3;
+            --secondary: #4a5568; 
+            --accent: #69b7ff; /* 慵懒晴空蓝 */
+            --accent-light: #eef7ff;
+            --bg: #f8f9fc; 
+            --card-bg: #ffffff;
+            --text-main: #2d3748;
+            --text-muted: #718096;
+            --shadow: 0 12px 40px rgba(255, 126, 157, 0.12);
+        }
+        
+        * { box-sizing: border-box; transition: all 0.25s ease; }
+        
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; 
+            background: linear-gradient(180deg, var(--primary-light) 0%, var(--bg) 500px); 
+            margin: 0; 
+            padding: 20px 12px; 
+            color: var(--text-main);
+            line-height: 1.6;
+        }
+        
+        .container { 
+            max-width: 580px; 
+            margin: 0 auto; 
+            background: var(--card-bg); 
+            padding: 28px 24px; 
+            border-radius: 32px; 
+            box-shadow: var(--shadow); 
+            border: 1px solid rgba(255, 227, 232, 0.6);
+        }
+        
+        .header { 
+            text-align: center; 
+            margin-bottom: 24px; 
+            background: linear-gradient(135deg, #ffffff, var(--accent-light));
+            padding: 24px 20px;
+            border-radius: 24px;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.02);
+            border: 2px dashed #ffcbd7;
+        }
+        .header h1 { 
+            color: var(--primary); 
+            margin: 0; 
+            font-size: 30px; 
+            font-weight: 900;
+            letter-spacing: 1.5px;
+            text-shadow: 2px 2px 0px #fff, 3px 3px 0px #ffe3e8;
+        }
+        .header p { 
+            color: var(--text-muted); 
+            margin: 8px 0 0 0; 
+            font-size: 14px; 
+            font-weight: 600;
+        }
+        .weather-badge { 
+            display: inline-block; 
+            background: #ffffff; 
+            padding: 6px 18px; 
+            border-radius: 50px; 
+            font-size: 13px; 
+            color: #2b84ca; 
+            margin-top: 12px; 
+            font-weight: bold; 
+            box-shadow: 0 4px 14px rgba(125, 198, 255, 0.25);
+            border: 1.5px solid var(--accent);
+        }
+        
+        .form-grid { 
+            display: grid; 
+            grid-template-columns: 1fr; 
+            gap: 16px; 
+            margin-bottom: 24px; 
+        }
+        @media(min-width: 440px) {
+            .form-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        .form-group { display: flex; flex-direction: column; }
+        label { 
+            margin-bottom: 6px; 
+            font-weight: 700; 
+            color: var(--secondary); 
+            font-size: 13.5px; 
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        select { 
+            padding: 12px 16px; 
+            border: 2px solid #edf2f7; 
+            border-radius: 16px; 
+            font-size: 14px; 
+            background-color: #fafbfc;
+            color: #4a5568;
+            outline: none;
+            cursor: pointer;
+            -webkit-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'><path d='M0 3l5 5 5-5z' fill='%23ff7e9d'/></svg>");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+            background-size: 12px;
+        }
+        select:focus { 
+            border-color: var(--primary); 
+            background-color: #ffffff;
+            box-shadow: 0 0 0 4px rgba(255, 126, 157, 0.12);
+        }
+        
+        button.primary-btn { 
+            width: 100%; 
+            padding: 16px; 
+            background: linear-gradient(135deg, var(--primary), #ff527b); 
+            color: white; 
+            border: none; 
+            border-radius: 18px; 
+            font-size: 16px; 
+            cursor: pointer; 
+            font-weight: 800; 
+            box-shadow: 0 8px 24px rgba(255, 126, 157, 0.35); 
+            margin-bottom: 24px; 
+            position: relative; 
+            letter-spacing: 1px;
+        }
+        button.primary-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 28px rgba(255, 126, 157, 0.45); 
+        }
+        button.primary-btn:active { transform: translateY(1px); }
+        
+        .loading-spin { 
+            display: none; 
+            width: 20px; 
+            height: 20px; 
+            border: 3px solid rgba(255,255,255,0.3); 
+            border-top: 3px solid white; 
+            border-radius: 50%; 
+            animation: spin 0.8s linear infinite; 
+            position: absolute; 
+            left: 20px; 
+            top: calc(50% - 10px); 
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .result-card { display: none; animation: popIn 0.45s cubic-bezier(0.165, 0.84, 0.44, 1) both; }
+        @keyframes popIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .res-box { 
+            background: linear-gradient(to bottom, #ffffff, #fffdfa); 
+            border: 1px solid #ffe3e8; 
+            padding: 20px; 
+            border-radius: 24px; 
+            margin-bottom: 20px; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.01);
+        }
+        
+        .route-step { 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between; 
+            margin: 12px 0; 
+            padding: 16px; 
+            background: #ffffff; 
+            border: 1.5px solid #edf2f7; 
+            border-radius: 16px; 
+            cursor: pointer; 
+            box-shadow: 0 2px 6px rgba(0,0,0,0.01);
+        }
+        .route-step:hover { 
+            border-color: var(--primary); 
+            background: #fffbfd; 
+            transform: scale(1.015);
+        }
+        .step-left { display: flex; flex-direction: column; gap: 4px; font-size: 14px; flex: 1; padding-right: 12px; }
+        .step-title-row { display: flex; align-items: center; gap: 8px; font-weight: bold; flex-wrap: wrap;}
+        
+        .distance-tag { 
+            font-size: 12px; 
+            background: var(--accent-light); 
+            color: #0070c9; 
+            padding: 3px 8px; 
+            border-radius: 8px; 
+            font-weight: bold; 
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
+        .suggestion-tag {
+            font-size: 11.5px;
+            background: #f0fff4;
+            color: #2f855a;
+            padding: 3px 8px;
+            border-radius: 8px;
+            font-weight: 700;
+        }
+        .scene-tag {
+            font-size: 11px;
+            background: #fff7e6;
+            color: #c2750c;
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-weight: 700;
+            display: inline-block;
+            margin-top: 6px;
+        }
+        
+        .map-wrapper { 
+            position: relative; 
+            border-radius: 24px; 
+            border: 4px solid #ffe3e8; 
+            overflow: hidden; 
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+        }
+        #map-container { width: 100%; height: 380px; }
+        
+        .layer-ctrl { 
+            position: absolute; 
+            top: 12px; 
+            right: 12px; 
+            background: rgba(255, 255, 255, 0.95); 
+            padding: 8px 12px; 
+            border-radius: 16px; 
+            z-index: 999; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 6px; 
+            font-size: 12px; 
+            border: 1px solid #ffe3e8;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        .layer-ctrl label { margin: 0; font-weight: 600; cursor: pointer; }
+        
+        /* 深度优化：超拟真手账日记本样式 */
+        .journal-container {
+            display: none;
+            background: #fdfaf4; /* 复古米黄牛皮纸色 */
+            border: 3px dashed #ffb3c6;
+            border-radius: 24px;
+            padding: 24px;
+            margin-top: 24px;
+            box-shadow: inset 0 0 20px rgba(212,175,136,0.15), 0 8px 24px rgba(0,0,0,0.05);
+            background-image: linear-gradient(#e4dcce 1px, transparent 1px);
+            background-size: 100% 26px; /* 模拟手写横格纸线 */
+            line-height: 26px;
+        }
+        .journal-paper { position: relative; padding-top: 10px; }
+        .journal-tape {
+            position: absolute;
+            top: -35px;
+            left: 30%;
+            width: 100px;
+            height: 25px;
+            background: rgba(255, 182, 193, 0.5);
+            transform: rotate(-3deg);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .journal-photo-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin: 15px 0;
+        }
+        .journal-photo-item {
+            background: #ffffff;
+            padding: 8px 8px 20px 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+            border: 1px solid #eee;
+            transform: rotate(1deg);
+        }
+        .journal-photo-item:nth-child(even) { transform: rotate(-1.5deg); }
+        .journal-photo-item img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+        .journal-textarea {
+            width: 100%;
+            height: 100px;
+            background: transparent;
+            border: none;
+            font-family: inherit;
+            font-size: 14px;
+            line-height: 26px;
+            color: #4a3728;
+            resize: none;
+            outline: none;
+        }
+        
+        .secondary-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, var(--accent), #4dafff);
+            color: white;
+            border: none;
+            border-radius: 16px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 12px;
+            box-shadow: 0 4px 15px rgba(105, 183, 255, 0.3);
+        }
+        .secondary-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(105, 183, 255, 0.4); }
+
+        /* 高德地图大头针气泡样式自适应 */
+        .amap-info-content {
+            border-radius: 24px !important;
+            border: 2.5px solid var(--primary) !important;
+            box-shadow: 0 12px 32px rgba(255,126,157,0.25) !important;
+            padding: 0 !important;
+            overflow: hidden;
+        }
+        .info-card-box { width: 230px; font-family: -apple-system, sans-serif; background: #fff; min-height: 270px; display: flex; flex-direction: column;}
+        .info-card-img { width: 230px; height: 160px; object-fit: cover; display: block; border-bottom: 1px solid #ffe3e8; }
+        .info-card-body { padding: 14px; font-size: 13px; flex: 1; display: flex; flex-direction: column; justify-content: space-between;}
+        
+        /* 纯文本深度体验模式 */
+        .info-card-text-only {
+            width: 230px;
+            padding: 16px;
+            font-size: 13px;
+            background: #fffbfd;
+            min-height: 270px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* 可爱翻转按钮 */
+        .flip-toggle-btn {
+            background: linear-gradient(135deg, var(--primary), #ff5c81);
+            color: #fff;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            display: inline-block;
+            margin-top: 8px;
+            text-align: center;
+            box-shadow: 0 3px 8px rgba(255,126,157,0.2);
+        }
+
+        #panel {
+            max-height: 120px;
+            overflow-y: auto;
+            background-color: white;
+            border-radius: 16px;
+            padding: 10px;
+            font-size: 13px;
+            border: 1px solid #edf2f7;
+            margin-top: 10px;
+        }
+
+        /* 地图站点名称翻转卡片：点击名称在文字与实拍图之间 3D 翻转 */
+        .map-flip-card {
+            width: 108px;
+            height: 38px;
+            perspective: 700px;
+            cursor: pointer;
+        }
+        .map-flip-card.is-flipped-large { height: 96px; }
+        .map-flip-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.5s cubic-bezier(0.165, 0.84, 0.44, 1);
+            transform-style: preserve-3d;
+        }
+        .map-flip-card.flipped .map-flip-inner { transform: rotateY(180deg); }
+        .map-flip-front, .map-flip-back {
+            position: absolute;
+            inset: 0;
+            backface-visibility: hidden;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .map-flip-front {
+            background: #fff;
+            border: 1px solid var(--primary);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 3px 7px;
+            font-size: 11px;
+            font-weight: bold;
+            color: #2d3748;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            overflow: hidden;
+        }
+        .map-flip-back {
+            transform: rotateY(180deg);
+            background: #fff;
+            border: 2px solid var(--primary);
+            box-shadow: 0 4px 12px rgba(255,126,157,0.3);
+        }
+        .map-flip-back img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+        /* ===== 移动端适配 ===== */
+        @media (max-width: 480px) {
+            body { padding: 12px 8px; }
+            .container { padding: 18px 14px; border-radius: 22px; }
+            .header { padding: 18px 14px; border-radius: 18px; }
+            .header h1 { font-size: 24px; letter-spacing: 1px; }
+            .header p { font-size: 12.5px; }
+            .weather-badge { font-size: 12px; padding: 5px 14px; }
+            .form-grid { gap: 12px; margin-bottom: 18px; }
+            label { font-size: 12.5px; }
+            select { padding: 11px 14px; font-size: 13.5px; border-radius: 14px; }
+            button.primary-btn { padding: 14px; font-size: 14.5px; border-radius: 16px; }
+            .res-box { padding: 16px; border-radius: 18px; }
+            #res-title { font-size: 16px !important; }
+            .route-step { padding: 12px; border-radius: 14px; margin: 10px 0; }
+            .step-title-row { font-size: 13px; }
+            .map-wrapper { border-radius: 18px; border-width: 3px; }
+            #map-container { height: 280px; }
+            .layer-ctrl { padding: 6px 10px; font-size: 11px; top: 8px; right: 8px; }
+            .journal-container { padding: 16px; border-radius: 18px; background-size: 100% 24px; line-height: 24px; }
+            .journal-photo-grid { gap: 8px; }
+            .journal-photo-item img { height: 95px; }
+            .secondary-btn { padding: 12px; font-size: 13.5px; }
+            .info-card-box, .info-card-text-only, .info-card-img { width: 190px; }
+            .info-card-img { height: 130px; }
+        }
+        @media (max-width: 360px) {
+            .header h1 { font-size: 21px; }
+            #map-container { height: 230px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>咪呀广州 🐾</h1>
+        <p>每一趟街头漫步，都是一次奇妙体验</p>
+        <div id="weather-info" class="weather-badge">静态调试中...</div>
+    </div>
+    
+    <div class="form-grid">
+        <div class="form-group">
+            <label for="district">📍 优先区域</label>
+            <select id="district">
+                <option value="all">✨ 全市通吃 (智能探索)</option>
+                <option value="liwan">🏮 荔湾区 (西关老字号)</option>
+                <option value="yuexiu">🏛️ 越秀区 (广府慢生活)</option>
+                <option value="tianhe">🏙️ 天河区 (潮流商业中心)</option>
+                <option value="haizhu">🌉 海珠区 (江风文艺码头)</option>
+                <option value="baiyun">⛰️ 白云区 (白云山下闲游)</option>
+                <option value="huangpu">⚓ 黄埔区 (古港军校风情)</option>
+                <option value="panyu">🎢 番禺区 (亲子主题乐园)</option>
+                <option value="huadu">🌺 花都区 (花海湖畔休闲)</option>
+                <option value="nansha">🌊 南沙区 (滨海港湾漫步)</option>
+                <option value="zengcheng">🍈 增城区 (荔乡田园风光)</option>
+                <option value="conghua">♨️ 从化区 (温泉山林度假)</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="taste">✨ 偏好口味</label>
+            <select id="taste">
+                <option value="cantonese">🍵 传统粤菜/茶楼点心</option>
+                <option value="snack">🍡 地道街头小吃/老字号</option>
+                <option value="hongkong">🇭🇰 香港茶餐厅/冰室风味</option>
+                <option value="macao">🇲🇴 澳门葡式料理/牛杂蛋挞</option>
+                <option value="southeast">🍛 东南亚风味/冬阴功越式</option>
+                <option value="japanese_korean">🍣 日韩精致料理/居酒屋</option>
+                <option value="chuanxiang">🔥 川湘麻辣江湖菜/火锅</option>
+                <option value="stalls">🔥 深夜镬气大排档/生滚粥</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="budget">💵 人均预算</label>
+            <select id="budget">
+                <option value="50">50元以下 (学生党最爱)</option>
+                <option value="50-100">50-100元 (平价大碗)</option>
+                <option value="200-300">200-300元 (老饕私藏)</option>
+                <option value="300">300元以上 (高端品质)</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="time">🕒 出行场景/时段</label>
+            <select id="time">
+                <option value="day">☀️ 晴空漫步 (赏日光建筑)</option>
+                <option value="night">🌙 夜幕观光 (吹珠江微风)</option>
+                <option value="date">💑 情侣约会 (调调极其浪漫)</option>
+                <option value="sunset">🌇 黄昏落日 (天台/江边出片)</option>
+                <option value="family">👨‍👩‍👧 亲子周末 (遛娃慢节奏)</option>
+                <option value="friends">🎉 闺蜜聚会 (拍照吃喝两不误)</option>
+                <option value="photo">📸 人少出片 (小众机位打卡)</option>
+                <option value="rainy">🌧️ 雨天室内 (商场骑楼避雨)</option>
+                <option value="pet">🐶 遛宠漫游 (宠物友好路线)</option>
+                <option value="solo">🎧 一人毕业旅 (独自City Walk)</option>
+            </select>
+        </div>
+    </div>
+
+    <button id="btn" class="primary-btn" onclick="generateRoute()">
+        <span id="loading" class="loading-spin"></span>
+        <span id="btn-text">一键生成专属路线 ✨</span>
+    </button>
+
+    <div id="result" class="result-card">
+        <div class="res-box">
+            <h3 id="res-title" style="margin:0 0 10px 0; color:var(--primary); font-size:18px; font-weight:800;"></h3>
+            <p style="margin:6px 0; font-size:14.5px;"><strong>🍰 今日主打推荐：</strong> <span id="res-restaurant" style="color:#ff5c81; font-weight:700;"></span></p>
+            <div id="res-scene"></div>
+            <p style="font-size:12px; color:var(--text-muted); margin:6px 0 14px 0;">🌸 小提示：点击地图路线标记可以弹出翻转卡片，随意切换餐厅/景点图鉴或详情手记哦！</p>
+            
+            <div id="res-route"></div>
+            
+            <div style="font-size: 13px; font-weight: bold; margin-top: 15px; color: var(--secondary);">AMap 导航实况路线解说：</div>
+            <div id="panel"></div>
+            
+            <button class="secondary-btn" onclick="openAMapApp()" style="background: linear-gradient(135deg, #2b84ca, #4dafff); margin-top: 15px;">🚀 直接调起高德地图App导航</button>
+            <button class="secondary-btn" onclick="generateTravelJournal()">✍️ 开启/查看专属有图手账本</button>
+        </div>
+        
+        <div class="map-wrapper">
+            <div class="layer-ctrl">
+                <label><input type="checkbox" id="satellite-layer" onchange="toggleLayers()"> 🛰️ 3D卫星影像</label>
+                <label><input type="checkbox" id="traffic-layer" onchange="toggleLayers()"> 🚙 实时路况</label>
+            </div>
+            <div id="map-container"></div>
+        </div>
+
+        <div id="journal-section" class="journal-container">
+            <div class="journal-tape"></div>
+            <div class="journal-paper">
+                <h4 style="margin:0 0 10px 0; color:#c05c6e; font-size:16px; font-weight:800; border-bottom:2px dashed #ffcbd7; padding-bottom:4px;">🐾 咪呀广州 · 浪漫街头游记手账</h4>
+                <div id="journal-auto-text" style="font-size:13.5px; color:#554235; font-weight:bold; margin-bottom:10px;"></div>
+                
+                <div style="font-size:13px; color:#a08070; font-weight:bold; margin-top:15px; text-decoration:underline;">✍️ 我的手写心情随笔：</div>
+                <textarea id="journal-user-note" class="journal-textarea" placeholder="在这里写下你的探店心得、搞笑瞬间或避坑指南吧... (内容会自动安全保存哦) " oninput="saveJournalToStorage()"></textarea>
+                
+                <div style="font-size:13px; color:#a08070; font-weight:bold; margin-top:15px;">📸 我的旅途手账相册：</div>
+                <div style="margin: 8px 0;">
+                    <label style="background:var(--primary); color:#fff; padding:6px 14px; border-radius:12px; font-size:12px; cursor:pointer; display:inline-block; font-weight:bold;">
+                        ➕ 点击上传/记录今天拍的照片
+                        <input type="file" id="journal-photo-input" accept="image/*" multiple style="display:none;" onchange="handlePhotoUpload(this)">
+                    </label>
+                </div>
+                <div id="journal-photos" class="journal-photo-grid"></div>
+                
+                <button class="secondary-btn" style="background:linear-gradient(135deg, #c05c6e, #ff7e9d); margin-top:20px;" onclick="clearSavedJournal()">🧹 清空当前手账记录</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let is_rainy_day = false; 
+    let map = null;
+    let satelliteLayer = null;
+    let trafficLayer = null;
+    let infoWindow = null;
+    let walkingRoutePlugin = null; 
+    let currentMatchedRoute = null;
+    let currentStationFlipState = {}; 
+
+    // 场景中文标签映射（用于结果展示）
+    const sceneLabels = {
+        day: "☀️ 晴空漫步", night: "🌙 夜幕观光", date: "💑 情侣约会",
+        sunset: "🌇 黄昏落日", family: "👨‍👩‍👧 亲子周末", friends: "🎉 闺蜜聚会",
+        photo: "📸 人少出片", rainy: "🌧️ 雨天室内", pet: "🐶 遛宠漫游", solo: "🎧 一人毕业旅"
+    };
+
+    // 路线数据库：每个区域至少配有多组「区域专属」的餐厅与口味组合，
+    // 保证切换城区时，展示的美食/景点严格对应该城区
+    const routeDatabase = [
+        // ===== 荔湾区 =====
+        {
+            tags: { district: "liwan", taste: "snack", budget: "50", time: "day" },
+            title: "西关非遗老字号风情扫街", restaurant: "源记肠粉 / 陈添记鱼皮",
+            steps: ["源记肠粉店", "上下九骑楼步行街", "陈添记老店", "永庆坊非遗区"],
+            placeTypes: ["【老字号小吃】", "【复古风景区】", "【传承百年餐厅】", "【西关打卡景点】"],
+            desc: ["皮薄如纸的传统布拉肠，牛肉味必点", "老广州商贸骑楼步行街，充满市井烟火气", "老广州爽脆鱼皮，香油伴着花生极其松脆", "融合了粤剧与现代国潮的西关特色创意街区"],
+            images: [
+                "https://images.unsplash.com/photo-1563245372-f21724e3856d?w=400&h=400&fit=crop", 
+                "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=400&h=400&fit=crop",
+                "https://images.unsplash.com/photo-1605538032432-a9f0c8d9baac?w=400&h=400&fit=crop",
+                "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=400&h=400&fit=crop"
+            ],
+            path: [[113.243512, 23.119211], [113.246111, 23.114522], [113.248211, 23.116100], [113.233011, 23.115822]],
+            districtName: "荔湾区"
+        },
+        {
+            tags: { district: "liwan", taste: "cantonese", budget: "200-300", time: "date" },
+            title: "荔枝湾畔粤式茶楼浪漫游", restaurant: "泮溪酒家 / 趣怡茶居",
+            steps: ["泮溪酒家", "荔枝湾涌", "粤剧艺术博物馆"],
+            placeTypes: ["【百年园林酒家】", "【水乡风情景区】", "【岭南文化景点】"],
+            desc: ["岭南园林式老字号茶楼，虾饺、糯米鸡样样精致", "乘小艇泛舟荔枝湾，两岸骑楼垂柳相映成趣", "古色古香的岭南庭院，感受粤剧戏曲的魅力"],
+            images: [
+                "https://images.unsplash.com/photo-1512058564366-18510be2db19?w=400&h=400&fit=crop",
+                "https://images.unsplash.com/photo-1500964757637-c85e8a162699?w=400&h=400&fit=crop",
+                "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400&h=400&fit=crop"
+            ],
+            path: [[113.247400, 23.127100], [113.245100, 23.128800], [113.243900, 23.130200]],
+            districtName: "荔湾区"
+        },
+        // ===== 越秀区 =====
+        {
+            tags: { district: "yuexiu", taste: "macao", budget: "50-100", time: "day" },
+            title: "越秀浪漫葡风与老城慢漫步", restaurant: "陈光记烧味 / 芳叔蛋挞",
+            steps: ["陈光记黑椒烧鸭店", "北京路步行街", "圣心大教堂"],
+            placeTypes: ["【澳门风味餐厅】", "【历史核心景区】", "【哥特式古建筑】"],
+            desc: ["澳门传承而来的特色黑椒烧鸭，皮脆汁多，黑椒味浓郁", "千年的古道遗址与繁华商圈交织，沿途小吃不停歇", "国内少有的全花岗岩石结构大教堂，阳光洒下浪漫非凡"],
+            images: [
+                "https://images.unsplash.com/photo-1512058564366-18510be2db19?w=400&h=400&fit=crop",
+                "https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?w=400&h=400&fit=crop",
+                "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400&h=400&fit=crop"
+            ],
+            path: [[113.268511, 23.125111], [113.265111, 23.123222], [113.263100, 23.116500]],
+            districtName: "越秀区"
+        },
+        {
+            tags: { district: "yuexiu", taste: "stalls", budget: "50", time: "night" },
+            title: "越秀夜幕镬气大排档江湖", restaurant: "文记壹心生滚粥 / 银记肠粉",
+            steps: ["文记壹心生滚粥", "东山口骑楼街区", "中山纪念堂夜景"],
+            placeTypes: ["【深夜生滚粥铺】", "【民国风情街区】", "【地标夜景景点】"],
+            desc: ["现叫现滚的及第粥，配油条香脆，宵夜首选", "东山洋楼林立，灯光下别有一番民国韵味", "灯光璀璨的纪念堂广场，夜跑遛弯人气旺"],
+            images: [
+                "https://images.unsplash.com/photo-1563245372-f21724e3856d?w=400&h=400&fit=crop",
+                "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400&h=400&fit=crop",
+                "https://images.unsplash.com/photo-1493612276216-ee3925520721?w=400&h=400&fit=crop"
+            ],
+            path: [[113.273100, 23.121100], [113.282300, 23.128400], [113.267200, 23.130900]],
+            districtName: "越秀区"
+        },
+        // ===== 天河区 =====
+        {
+            tags: { district: "tianhe", taste: "hongkong", budget: "50-100", time: "day" },
+            title: "天河港式怀旧冰室与潮流复古游", restaurant: "敏华冰厅 / 广九餐室",
+            steps: ["广九餐室(体育西店)", "天环广场中心", "正佳极地海洋世界"],
+            placeTypes: ["【港式茶餐厅】", "【潮流地标景点】", "【室内梦幻景区】"],
+            desc: ["超厚切广九吉列猪扒包，配上一杯喷泉阿华田奶茶，绝赞！", "双鲤鱼造型的开放式时尚购物中轴建筑，拍照超前卫", "藏在商圈里的梦幻海洋馆，看浪漫的水母和白鲸"],
+            images: [
+                "https://images.unsplash.com/photo-1563245372-f21724e3856d?w=400&h=400&fit=crop",
+                "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400&h=400&fit=crop",
+                "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=400&h=400&fit=crop"
+            ],
+            path: [[113.321100, 23.131100], [113.325500, 23.134500], [113.327100, 23.132100]],
+            districtName: "天河区"
+        },
+        {
+            tags: { district: "tianhe", taste: "japanese_korean", budget: "300", time: "night" },
+            title: "天河CBD夜幕居酒屋潮玩夜", restaurant: "鸟酎居酒屋 / 滨海道寿喜烧",
+            steps: ["鸟酎居酒屋", "珠江新城花城广场", "广州塔江边夜景"],
+            placeTypes: ["【精致日式居酒屋】", "【城市核心地标】", "【浪漫夜景观光点】"],
+            desc: ["炭火炙烤的和牛串与清酒，CBD深夜限定的小确幸", "中轴线璀璨灯光秀，与高楼倒影交相辉映", "珠江夜游与小蛮腰灯光秀，City Walk收官最佳点"],
+            images: [
+                "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=400&h=400&fit=crop",
+                "https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=400&h=400&fit=crop",
+                "https://images.unsplash.com/photo-1535139262971-c51845709a48?w=400&h=400&fit=crop"
+            ],
+            path: [[113.330200, 23.119700], [113.323900, 23.118600], [113.319300, 23.106500]],
+            districtName: "天河区"
+        },
+        // ===== 海珠区 =====
+        {
+            tags: { district: "haizhu", taste: "chuanxiang", budget: "50-100", time: "night" },
+            title: "海珠江畔麻辣江湖火锅夜", restaurant: "佳佳麻辣烫 / 蜀大侠火锅",
+            steps: ["蜀大侠火锅(琶醍店)", "琶醍啤酒文化创意园", "广州塔对岸江景平台"],
+            placeTypes: ["【川渝风味火锅】", "【工业风创意园区】", "【绝美江景观景台】"],
+            desc: ["麻辣鲜香的牛油火锅，配冰粉解辣，江湖气十足", "由旧厂房改造的潮流园区，酒吧美食一应俱全", "隔江远眺小蛮腰，是本地人私藏的拍照机位"],
+            images: [
+                "https://images.unsplash.com/photo-1626804475297-411af0593b65?w=400&h=400&fit=crop",
+                "https://images.unsplash.com/photo-1572116469696-31de0f17cc34?w=400&h=400&fit=crop",
+                "https://images.unsplash.com/photo-1535139262971-c51845709a48?w=400&h=400&fit=crop"
+            ],
+            path: [[113.328700, 23.103600], [113.330600, 23.101900], [113.323000, 23.104900]],
+            districtName: "海珠区"
+        },
+        {
+            tags: { district: "haizhu", taste: "southeast", budget: "50-100", time: "day" },
+            title: "海珠文艺码头东南亚风情游", restaurant: "曼乐泰式餐厅 / 西堤越南粉",
+            steps: ["曼乐泰式餐厅", "广州艺术博物院", "海珠湖湿地公园"],
+            placeTypes: ["【东南亚风味餐厅】", "【艺术文化景区】", "【生态湿地公园】"],
+            desc: ["地道冬阴功汤配芒果糯米饭，酸辣开胃超解腻", "馆藏丰富的岭南书画艺术殿堂，适合慢慢逛", "城央难得一见的大片湿地绿洲，骑行散步皆宜"],
+            images: [
+                "https://images.unsplash.com/photo-1559847844-5315695dadae?w=400&h=400&fit=crop",
+                "https://images.unsplash.com/photo-1577083552431-6e5fd01aa342?w=400&h=400&fit=crop",
+                "https://images.unsplash.com/photo-1501854140801-50d01698950b?w=400&h=400&fit=crop"
+            ],
+            path: [[113.317800, 23.087600], [113.311300, 23.090900], [113.310500, 23.077800]],
+            districtName: "海珠区"
+        },
+        // ===== 白云区 =====
+        {
+            tags: { district: "baiyun", taste: "cantonese", budget: "50-100", time: "day" },
+            title: "白云山下清新登高觅食游", restaurant: "白云山庄农家菜 / 云山牛肉火锅",
+            steps: ["云山牛肉火锅店", "白云山风景区", "云台花园"],
+            placeTypes: ["【本地特色餐厅】", "【城央登山景区】", "【浪漫花园景点】"],
+            desc: ["现切手打牛肉丸配清汤锅底，登山后暖胃首选", "羊城第一秀，登顶摩星岭俯瞰广州全景", "四季花卉轮番绽放，是拍照与小憩的好去处"],
+            images: [
+                "https://images.unsplash.com/photo-1551782450-a2132b4ba21d?w=400&h=400&fit=crop",
+                "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=400&fit=crop",
+                "https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=400&h=400&fit=crop"
+            ],
+            path: [[113.301400, 23.180100], [113.296500, 23.190800], [113.290700, 23.195600]],
+            districtName: "白云区"
+        },
+        // ===== 黄埔区 =====
+        {
+            tags: { district: "huangpu", taste: "stalls", budget: "50-100", time: "day" },
+            title: "黄埔古港军校历史漫游", restaurant: "黄埔古港海鲜大排档 / 长洲烧鹅",
+            steps: ["黄埔古港海鲜大排档", "黄埔军校旧址", "长洲岛环岛绿道"],
+            placeTypes: ["【临江海鲜大排档】", "【近代历史景区】", "【滨江骑行绿道】"],
+            desc: ["江鲜清蒸最地道，傍晚江风配啤酒惬意十足", "近代史重要发源地，红墙绿瓦满满历史厚重感", "沿江骑行绿道，吹江风看货轮穿梭别有趣味"],
+            images: [
+                "https://images.unsplash.com/photo-1559339352-11d035aa65de?w=400&h=400&fit=crop",
+                "https://images.unsplash.com/photo-1518998053901-5348d3961a04?w=400&h=400&fit=crop",
+                "https://images.unsplash.com/photo-1465146344425-f00d5f5c8f07?w=400&h=400&fit=crop"
+            ],
+            path: [[113.481000, 23.094800], [113.477200, 23.098300], [113.470500, 23.091200]],
+            districtName: "黄埔区"
+        },
+        // ===== 番禺区 =====
+        {
+            tags: { district: "panyu", taste: "cantonese", budget: "200-300", time: "family" },
+            title: "番禺亲子主题乐园畅玩日", restaurant: "祁福喜万年酒家 / 宝桑园农庄菜",
+            steps: ["宝桑园农庄菜馆", "广州长隆野生动物世界", "长隆水上乐园"],
+            placeTypes: ["【乡村风味农庄】", "【亲子动物园】", "【夏日水上乐园】"],
+            desc: ["现摘时蔬配走地鸡，吃得健康又地道", "近距离接触萌宠猛兽，遛娃首选地", "刺激水滑梯加懒人河，亲子消暑超满足"],
+            images: [
+                "https://images.unsplash.com/photo-1474314170901-f351b68f544f?w=400&h=400&fit=crop",
+                "https://images.unsplash.com/photo-1503919005314-30d93d07d823?w=400&h=400&fit=crop",
+                "https://images.unsplash.com/photo-1530549387789-4c1017266635?w=400&h=400&fit=crop"
+            ],
+            path: [[113.335400, 22.997300], [113.330500, 22.995600], [113.327800, 22.991200]],
+            districtName: "番禺区"
+        },
+        // ===== 花都区 =====
+        {
+            tags: { district: "huadu", taste: "snack", budget: "50", time: "photo" },
+            title: "花都花海湖畔出片悠闲游", restaurant: "花山牛肉干 / 赤坭艾糍",
+            steps: ["赤坭艾糍小铺", "花都湖国家湿地公园", "花都新光酒店周边花田"],
+            placeTypes: ["【本地手作小吃】", "【生态湿地公园】", "【网红花田机位】"],
+            desc: ["现包现蒸的艾草糍粑，清香软糯不腻口", "环湖绿道与生态湿地，骑行散步皆宜", "四季花海轮替，是小众出片的绝佳取景地"],
+            images: [
+                "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=400&h=400&fit=crop",
+                "https://images.unsplash.com/photo-1500964757637-c85e8a162699?w=400&h=400&fit=crop",
+                "https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=400&h=400&fit=crop"
+            ],
+            path: [[113.220300, 23.408500], [113.224800, 23.404100], [113.230200, 23.399700]],
+            districtName: "花都区"
+        },
+        // ===== 南沙区 =====
+        {
+            tags: { district: "nansha", taste: "southeast", budget: "200-300", time: "sunset" },
+            title: "南沙滨海港湾日落漫步", restaurant: "南沙渔港海鲜舫 / 蕉门河畔泰餐",
+            steps: ["蕉门河畔泰式餐厅", "南沙天后宫", "蕉门河滨海公园"],
+            placeTypes: ["【滨海东南亚餐厅】", "【滨海妈祖庙宇】", "【日落海湾公园】"],
+            desc: ["椰香咖喱配海鲜拼盘，临海用餐氛围感拉满", "华南地区规模宏大的妈祖庙，建筑壮观大气", "夕阳西下，港珠澳大桥方向晚霞最是迷人"],
+            images: [
+                "https://images.unsplash.com/photo-1535392432937-a27cca5dfa3a?w=400&h=400&fit=crop",
+                "https://images.unsplash.com/photo-1545558014-8692077e9b5c?w=400&h=400&fit=crop",
+                "https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?w=400&h=400&fit=crop"
+            ],
+            path: [[113.589700, 22.715500], [113.595300, 22.708700], [113.598900, 22.702300]],
+            districtName: "南沙区"
+        },
+        // ===== 增城区 =====
+        {
+            tags: { district: "zengcheng", taste: "cantonese", budget: "50-100", time: "solo" },
+            title: "增城荔乡田园慢生活City Walk", restaurant: "增城挂绿荔枝宴 / 派潭烧鸡",
+            steps: ["派潭烧鸡农家菜", "增城白水寨风景名胜区", "增江画廊绿道"],
+            placeTypes: ["【荔乡农家菜馆】", "【瀑布登山景区】", "【田园风光绿道】"],
+            desc: ["皮脆肉嫩的走地烧鸡，配荔枝蜜茶清爽解腻", "广东落差最大瀑布群，登高望远心旷神怡", "沿江骑行画卷般田园风光，独自漫步超治愈"],
+            images: [
+                "https://images.unsplash.com/photo-1432139555190-58524dae6a55?w=400&h=400&fit=crop",
+                "https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?w=400&h=400&fit=crop",
+                "https://images.unsplash.com/photo-1500534623283-312aade485b7?w=400&h=400&fit=crop"
+            ],
+            path: [[113.810600, 23.290500], [113.840300, 23.420100], [113.812900, 23.310400]],
+            districtName: "增城区"
+        },
+        // ===== 从化区 =====
+        {
+            tags: { district: "conghua", taste: "cantonese", budget: "300", time: "date" },
+            title: "从化温泉山林浪漫静养游", restaurant: "从化温泉宾馆养生宴 / 吕田豆腐花",
+            steps: ["从化温泉养生宴", "从化温泉风景区", "石门国家森林公园"],
+            placeTypes: ["【养生温泉餐厅】", "【天然温泉景区】", "【森林红叶景区】"],
+            desc: ["药膳养生宴配矿物温泉水煮菜，养生又暖心", "天然小苏打温泉，泡汤放松身心的不二之选", "层林尽染的森林公园，是情侣周末静养胜地"],
+            images: [
+                "https://images.unsplash.com/photo-1540541338287-41700207dee6?w=400&h=400&fit=crop",
+                "https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=400&h=400&fit=crop",
+                "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&h=400&fit=crop"
+            ],
+            path: [[113.586500, 23.545800], [113.580200, 23.551300], [113.567400, 23.580900]],
+            districtName: "从化区"
+        }
+    ];
+
+    window.onload = function() {
+        if(typeof AMap === 'undefined') return;
+        const weather = new AMap.Weather();
+        weather.getLive('440106', function(err, data) {
+            const badge = document.getElementById('weather-info');
+            if (!err) {
+                let txt = `🌤️ 广州今日：${data.weather} ${data.temperature}℃`;
+                if(data.weather.includes("雨") || data.weather.includes("雷")) {
+                    is_rainy_day = true;
+                    txt = `🌧️ 实时雨天！已智能切换室内避雨畅行游玩线`;
+                }
+                badge.innerHTML = txt;
+            }
+        });
+        
+        infoWindow = new AMap.InfoWindow({ offset: new AMap.Pixel(0, -32) });
+    }
+
+    // 路线匹配：优先严格保证「城区」一致，确保展示的餐厅美食与所选区域对应；
+    // 在同区域内再尽量贴近用户选择的口味，最后用场景作为展示标签（不影响匹配，仅做体验描述）
+    function matchRoute(dVal, tVal) {
+        let pool = routeDatabase;
+        if (dVal !== 'all') {
+            pool = routeDatabase.filter(r => r.tags.district === dVal);
+        }
+        if (pool.length === 0) pool = routeDatabase; // 兜底，理论上不会触发
+
+        // 同区域内优先匹配口味
+        let matched = pool.find(r => r.tags.taste === tVal);
+        if (!matched) {
+            // 区域内没有完全匹配口味时，仍从该区域随机挑选，保证「区域-餐厅」强对应
+            matched = pool[Math.floor(Math.random() * pool.length)];
+        }
+        return matched;
+    }
+
+    function generateRoute() {
+        document.getElementById('loading').style.display = 'inline-block';
+        document.getElementById('btn-text').innerText = '正在智能编排路线与图鉴...';
+
+        setTimeout(() => {
+            const dVal = document.getElementById('district').value;
+            const tVal = document.getElementById('taste').value;
+            const sceneVal = document.getElementById('time').value;
+
+            const matched = matchRoute(dVal, tVal);
+
+            currentMatchedRoute = matched;
+            currentStationFlipState = {}; 
+
+            document.getElementById('res-title').innerText = `🎉 已为您生成路线：${matched.title}`;
+            document.getElementById('res-restaurant').innerText = matched.restaurant;
+
+            const sceneLabel = sceneLabels[sceneVal] || sceneLabels.day;
+            document.getElementById('res-scene').innerHTML = `<span class="scene-tag">${sceneLabel} · ${matched.districtName}专属推荐</span>`;
+            
+            let routeHtml = '';
+            matched.steps.forEach((step, idx) => {
+                routeHtml += `
+                    <div class="route-step" onclick="focusOnStation(${idx})">
+                        <div class="step-left">
+                            <div class="step-title-row">
+                                <span style="color:var(--primary); font-weight:bold;">第 ${idx+1} 站：${step}</span>
+                                <span class="suggestion-tag" style="background:#fff0f3; color:var(--primary);">${matched.placeTypes[idx]}</span>
+                            </div>
+                            <div style="color:var(--text-muted); font-size:12.5px; margin-top:3px;">${matched.desc[idx]}</div>
+                        </div>
+                        <div class="distance-tag">📍 卡片看图</div>
+                    </div>
+                `;
+            });
+            document.getElementById('res-route').innerHTML = routeHtml;
+            document.getElementById('result').style.display = 'block';
+
+            initAndDrawAMapRoute(matched);
+
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('btn-text').innerText = '一键生成专属路线 ✨';
+        }, 800);
+    }
+
+    function initAndDrawAMapRoute(routeData) {
+        if (!map) {
+            map = new AMap.Map('map-container', { resizeEnable: true, zoom: 13, center: routeData.path[0] });
+            satelliteLayer = new AMap.TileLayer.Satellite();
+            trafficLayer = new AMap.TileLayer.Traffic();
+        } else {
+            map.clearMap(); 
+            if(walkingRoutePlugin) walkingRoutePlugin.clear(); 
+        }
+
+        if (!walkingRoutePlugin) {
+            walkingRoutePlugin = new AMap.Walking({ map: map, panel: "panel" });
+        }
+
+        const pts = routeData.path;
+        if(pts.length >= 2) drawSegment(0, pts);
+
+        pts.forEach((lnglat, idx) => {
+            const labelText = `第${idx+1}站:${routeData.placeTypes[idx]}${routeData.steps[idx]}`;
+            const flipCardHtml = `
+                <div class="map-flip-card" id="map-flip-${idx}" onclick="toggleMapLabelFlip(${idx})">
+                    <div class="map-flip-inner">
+                        <div class="map-flip-front" title="点击查看实拍图">${labelText}</div>
+                        <div class="map-flip-back"><img src="${routeData.images[idx]}" alt="${routeData.steps[idx]}"></div>
+                    </div>
+                </div>
+            `;
+            const marker = new AMap.Marker({
+                position: lnglat,
+                content: flipCardHtml,
+                offset: new AMap.Pixel(-54, -48),
+                anchor: 'bottom-center',
+                map: map
+            });
+        });
+        map.setFitView();
+    }
+
+    // 点击地图上的站点名称卡片，在「文字名称」与「实拍图片」之间做 3D 翻转
+    function toggleMapLabelFlip(idx) {
+        const card = document.getElementById('map-flip-' + idx);
+        if (!card) return;
+        card.classList.toggle('flipped');
+        card.classList.toggle('is-flipped-large');
+    }
+
+    function drawSegment(index, points) {
+        if (index >= points.length - 1) return;
+        walkingRoutePlugin.search(points[index], points[index + 1], function(status, result) {
+            if (status === 'complete') drawSegment(index + 1, points);
+        });
+    }
+
+    function focusOnStation(idx) {
+        if(!currentMatchedRoute || !map) return;
+        const lnglat = currentMatchedRoute.path[idx];
+        map.setZoomAndCenter(16, lnglat);
+        showStationPopup(idx, lnglat);
+    }
+
+    function showStationPopup(idx, lnglat) {
+        const route = currentMatchedRoute;
+        const isTextMode = currentStationFlipState[idx] || false; 
+        let contentHtml = '';
+        if (!isTextMode) {
+            contentHtml = `
+                <div class="info-card-box">
+                    <img class="info-card-img" src="${route.images[idx]}" />
+                    <div class="info-card-body">
+                        <div>
+                            <strong style="color:var(--primary); font-size:13.5px;">${route.placeTypes[idx]} ${route.steps[idx]}</strong>
+                        </div>
+                        <div><button class="flip-toggle-btn" onclick="executeCardFlip(${idx}, '${lnglat.join(',')}')">🔄 反转查看简介</button></div>
+                    </div>
+                </div>
+            `;
+        } else {
+            contentHtml = `
+                <div class="info-card-text-only">
+                    <div>
+                        <span style="background:var(--primary-light); color:var(--primary); padding:2px 6px; border-radius:6px; font-size:11px; font-weight:bold;">${route.placeTypes[idx]}</span>
+                        <h4 style="margin:8px 0 4px 0; color:var(--primary); font-size:15px; font-weight:800;">${route.steps[idx]}</h4>
+                        <p style="margin:6px 0; color:#4a5568; font-size:12.5px;">🐾 <strong>探店手记：</strong>${route.desc[idx]}</p>
+                    </div>
+                    <div><button class="flip-toggle-btn" style="background:var(--accent);" onclick="executeCardFlip(${idx}, '${lnglat.join(',')}')">🔄 反转查看实拍图片</button></div>
+                </div>
+            `;
+        }
+        infoWindow.setContent(contentHtml);
+        infoWindow.open(map, lnglat);
+    }
+
+    function executeCardFlip(idx, lnglatString) {
+        const lnglat = lnglatString.split(',').map(Number);
+        currentStationFlipState[idx] = !currentStationFlipState[idx];
+        showStationPopup(idx, lnglat);
+    }
+
+    function toggleLayers() {
+        if(!map) return;
+        if(document.getElementById('satellite-layer').checked) map.add(satelliteLayer); else map.remove(satelliteLayer);
+        if(document.getElementById('traffic-layer').checked) map.add(trafficLayer); else map.remove(trafficLayer);
+    }
+
+    function openAMapApp() {
+        if(!currentMatchedRoute) return;
+        const route = currentMatchedRoute;
+        const endPt = route.path[route.path.length - 1];
+        const endName = route.steps[route.steps.length - 1];
+        window.open(`https://uri.amap.com/navigation?to=${endPt[0]},${endPt[1]},${endName}&mode=walk&src=miya_gz`, '_blank');
+    }
+
+    // 手账本生成及本地存储联动核心逻辑
+    function generateTravelJournal() {
+        if(!currentMatchedRoute) return;
+        const section = document.getElementById('journal-section');
+        const autoText = document.getElementById('journal-auto-text');
+        
+        section.style.display = 'block';
+        autoText.innerHTML = `
+            📖 今天在 <strong>${currentMatchedRoute.districtName}</strong> 畅玩了一整天！<br>
+            从【${currentMatchedRoute.steps[0]}】快乐出发，完美打卡了多处景点与美食！路线打分：⭐⭐⭐⭐⭐
+        `;
+        
+        // 从本地存储读取历史照片和手写文字
+        loadJournalFromStorage();
+        section.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // 监听用户上传并转换成 Base64 永久本地储存
+    function handlePhotoUpload(input) {
+        if (!input.files || !input.files[0]) return;
+        
+        Array.from(input.files).forEach(file => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64Img = e.target.result;
+                // 获取已经存的照片
+                let savedPhotos = JSON.parse(localStorage.getItem('miya_journal_photos') || '[]');
+                savedPhotos.push(base64Img);
+                localStorage.setItem('miya_journal_photos', JSON.stringify(savedPhotos));
+                
+                // 刷新相册视图
+                renderPhotos(savedPhotos);
+            }
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function renderPhotos(photoArray) {
+        const grid = document.getElementById('journal-photos');
+        grid.innerHTML = '';
+        photoArray.forEach(imgData => {
+            const div = document.createElement('div');
+            div.className = 'journal-photo-item';
+            div.innerHTML = `<img src="${imgData}" alt="旅途精彩瞬间">`;
+            grid.appendChild(div);
+        });
+    }
+
+    // 保存文本手写笔记到本地
+    function saveJournalToStorage() {
+        const noteText = document.getElementById('journal-user-note').value;
+        localStorage.setItem('miya_journal_note', noteText);
+    }
+
+    // 页面加载或切换时回填已保存的数据
+    function loadJournalFromStorage() {
+        const note = localStorage.getItem('miya_journal_note') || '';
+        document.getElementById('journal-user-note').value = note;
+        
+        const savedPhotos = JSON.parse(localStorage.getItem('miya_journal_photos') || '[]');
+        renderPhotos(savedPhotos);
+    }
+
+    // 清空手账
+    function clearSavedJournal() {
+        if(confirm("确定要清空你写的手账和相册照片吗？")) {
+            localStorage.removeItem('miya_journal_note');
+            localStorage.removeItem('miya_journal_photos');
+            document.getElementById('journal-user-note').value = '';
+            document.getElementById('journal-photos').innerHTML = '';
+        }
+    }
+</script>
+
+</body>
+</html>
